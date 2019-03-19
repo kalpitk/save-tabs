@@ -12,20 +12,25 @@ window.onload = function () {
   });
 }
 
-function Tab(title, link) {
+function Item(title, links, passwordHash) {
   this.title = title;
-  this.url = link;
+  this.urls = links;
+  this.passwordHash = passwordHash;
 }
 
 function saveAllTabs() {
+  var title = document.getElementById('title').value || 'MultipleTabs';
+  var password = document.getElementById('password').value || '';
+  var passwordHash = CryptoJS.SHA256(password);
+  
   chrome.tabs.query({
     currentWindow: true
   }, function (tabs) {
     var arr = [];
     tabs.forEach(function (tab) {
-      arr.push(new Tab(tab.title, tab.url));
+      arr.push(CryptoJS.AES.encrypt(String(tab.url), String(password)));
     });
-    addToList(arr, true);
+    addToList(new Item(title, arr, passwordHash));
     chrome.storage.sync.set({
       'tabStorage': urlList
     });
@@ -33,46 +38,47 @@ function saveAllTabs() {
 }
 
 function saveCurrentTab() {
+  var title = document.getElementById('title').value;
+  var password = document.getElementById('password').value || '';
+  var passwordHash = CryptoJS.SHA256(password);
+
   chrome.tabs.query({
     active: true,
     currentWindow: true
   }, function (tab) {
-    addToList(tab[0]);
+    tab[0].title = title || tab[0].title;
+    tab[0].url = CryptoJS.AES.encrypt(tab[0].url, String(password));
+    addToList(new Item(tab[0].title, [tab[0].url], passwordHash));
     chrome.storage.sync.set({
       'tabStorage': urlList
     });
   });
 }
 
-function addToList(tab, isArray) {
-  urlList.push(tab);
+function addToList(tabs) {
+  urlList.push(tabs);
   var myList = document.getElementById("list");
   var link = document.createElement('a');
   var close = document.createElement('img');
   close.height = 12;
   close.src = 'close.png';
 
-  if (isArray) {
-    link.innerText = 'windows1';
-    link.addEventListener('click', (function (tab) {
-      return function () {
-        for (var i = 0; i < tab.length; i++) {
-          chrome.tabs.create({
-            url: String(tab[i].url)
-          });
-        }
+  link.innerText = tabs.title;
+  link.addEventListener('click', (function (tabs) {
+    return function () {
+      var password = document.getElementById('password').value || '';
+
+      if(String(CryptoJS.SHA256(password)) !== String(tabs.passwordHash)) {
+        return; // Wrong Password
       }
-    })(tab));
-  } else {
-    link.innerText = tab.title;
-    link.addEventListener('click', (function (tab) {
-      return function () {
+      for (var i = 0; i < tabs.urls.length; i++) {
+        var link = CryptoJS.AES.decrypt(tabs.urls[i], String(password)).toString(CryptoJS.enc.Utf8);
         chrome.tabs.create({
-          url: String(tab.url)
+          url: link
         });
       }
-    })(tab));
-  }
+    }
+  })(tabs));
 
   close.addEventListener('click', function (e) {
     const index = $(e.target.parentNode).index();
