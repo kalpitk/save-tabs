@@ -40,7 +40,7 @@ function saveAllTabs() {
 function saveCurrentTab() {
   var title = document.getElementById('title').value;
   var password = document.getElementById('password').value || '';
-  var passwordHash = CryptoJS.SHA256(password);
+  var passwordHash = CryptoJS.SHA256(password) + '';
 
   chrome.tabs.query({
     active: true,
@@ -67,8 +67,7 @@ function addToList(tabs) {
   link.addEventListener('click', (function (tabs) {
     return function () {
       var password = document.getElementById('password').value || '';
-
-      if(String(CryptoJS.SHA256(password)) !== String(tabs.passwordHash)) {
+      if(CryptoJS.SHA256(password) + '' !== tabs.passwordHash) {
         return; // Wrong Password
       }
       for (var i = 0; i < tabs.urls.length; i++) {
