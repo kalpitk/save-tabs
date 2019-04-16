@@ -21,7 +21,7 @@ function Item(title, links, passwordHash) {
 function saveAllTabs() {
   var title = document.getElementById('title').value || 'MultipleTabs';
   var password = document.getElementById('password').value || '';
-  var passwordHash = CryptoJS.SHA256(password);
+  var passwordHash = CryptoJS.SHA256(password).toString(CryptoJS.enc.Base64);
   
   chrome.tabs.query({
     currentWindow: true
@@ -40,7 +40,7 @@ function saveAllTabs() {
 function saveCurrentTab() {
   var title = document.getElementById('title').value;
   var password = document.getElementById('password').value || '';
-  var passwordHash = CryptoJS.SHA256(password) + '';
+  var passwordHash = CryptoJS.SHA256(password).toString(CryptoJS.enc.Base64);
 
   chrome.tabs.query({
     active: true,
@@ -67,7 +67,7 @@ function addToList(tabs) {
   link.addEventListener('click', (function (tabs) {
     return function () {
       var password = document.getElementById('password').value || '';
-      if(CryptoJS.SHA256(password) + '' !== tabs.passwordHash) {
+      if(CryptoJS.SHA256(password).toString(CryptoJS.enc.Base64) !== tabs.passwordHash) {
         return; // Wrong Password
       }
       for (var i = 0; i < tabs.urls.length; i++) {
